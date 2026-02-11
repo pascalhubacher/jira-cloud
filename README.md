@@ -6,6 +6,8 @@ A Model Context Protocol (MCP) server that provides tools to interact with Jira 
 
 - **Search Issues**: Query Jira issues using JQL (Jira Query Language)
 - **Create Issues**: Create new Jira issues with customizable fields
+- **Update Issues**: Modify issue fields and transition status
+- **Comments**: Add and retrieve comments on issues
 
 ## Prerequisites
 
@@ -161,6 +163,104 @@ Create a new Jira issue.
 | `issueType` | string | No | Issue type (default: `Task`) |
 
 **Supported issue types:** Task, Bug, Story, Epic (depends on your project configuration)
+
+### addComment
+
+Add a comment to an existing Jira issue.
+
+**Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `issueKey` | string | Yes | Issue key (e.g., `TEST-123`) |
+| `comment` | string | Yes | Comment text to add |
+
+### updateIssue
+
+Update fields of an existing Jira issue.
+
+**Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `issueKey` | string | Yes | Issue key (e.g., `TEST-123`) |
+| `summary` | string | No | New issue title |
+| `description` | string | No | New issue description |
+| `status` | string | No | New status (e.g., `In Progress`, `Done`) |
+
+**Note:** Status transitions depend on your project's workflow configuration.
+
+### getComments
+
+Get all comments from a Jira issue.
+
+**Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `issueKey` | string | Yes | Issue key (e.g., `TEST-123`) |
+
+## Testing
+
+The project includes both unit tests and integration tests using [Vitest](https://vitest.dev/).
+
+### Running Unit Tests
+
+Unit tests validate tool definitions, schemas, and helper functions without making API calls.
+
+```bash
+npm test
+```
+
+Or run in watch mode for development:
+
+```bash
+npm run test:watch
+```
+
+### Running Integration Tests
+
+Integration tests run against a real Jira Cloud instance. Make sure your `.env` file is configured correctly before running.
+
+```bash
+npm run test:integration
+```
+
+**Warning:** Integration tests will create, modify, and delete real Jira issues in your project. Test issues are automatically cleaned up after each test.
+
+### Test Structure
+
+```
+tests/
+├── tools.test.js              # Unit tests for tool schemas and helpers
+└── jira.integration.test.js   # Integration tests against real Jira API
+```
+
+### Test Coverage
+
+| Test Suite | Description |
+|------------|-------------|
+| **Tool Definitions** | Validates all 5 tools have correct schemas |
+| **getIssuesByJQL** | Tests JQL search, pagination, error handling |
+| **createIssue** | Tests issue creation and validation |
+| **addComment** | Tests adding comments to issues |
+| **getComments** | Tests retrieving comments |
+| **updateIssue** | Tests field updates and status transitions |
+| **Error Handling** | Tests graceful handling of invalid inputs |
+
+### Customizing Integration Tests
+
+The integration tests use constants that you may need to adjust for your Jira project:
+
+```javascript
+// tests/jira.integration.test.js
+const TEST_PROJECT_KEY = 'SCRUM';      // Your project key
+const TEST_ISSUE_TYPE_ID = '10003';    // Issue type ID (e.g., Story)
+```
+
+To find your issue type IDs, run:
+
+```bash
+curl -u your-email:your-api-token \
+  https://your-domain.atlassian.net/rest/api/3/issue/createmeta/YOUR_PROJECT/issuetypes
+```
 
 ## Troubleshooting
 

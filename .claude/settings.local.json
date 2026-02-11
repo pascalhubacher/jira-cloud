@@ -4,7 +4,9 @@
       "Bash(head:*)",
       "Bash(xxd:*)",
       "Bash(node:*)",
-      "Bash(npm show:*)"
+      "Bash(npm show:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run test:integration:*)"
     ]
   }
 }
