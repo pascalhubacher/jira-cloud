@@ -25,10 +25,16 @@ export const definition = {
 
 export async function handler(jiraClient, args) {
   const { jql, maxResults = 50 } = args;
-  console.error(`Running JQL: ${jql}`);
+
+  // Automatically scope to the configured project if not already filtered by project
+  const scopedJql = /\bproject\b/i.test(jql)
+    ? jql
+    : `project = ${jiraClient.project} AND ${jql}`;
+
+  console.error(`Running JQL: ${scopedJql}`);
 
   // Use the new /rest/api/3/search/jql endpoint (old endpoint deprecated)
-  const encodedJql = encodeURIComponent(jql);
+  const encodedJql = encodeURIComponent(scopedJql);
   const searchResult = await jiraClient.jiraFetch(
     `/rest/api/3/search/jql?jql=${encodedJql}&maxResults=${maxResults}`
   );

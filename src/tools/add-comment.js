@@ -26,6 +26,14 @@ export const definition = {
 
 export async function handler(jiraClient, args) {
   const { issueKey, comment } = args;
+
+  if (!issueKey.toUpperCase().startsWith(`${jiraClient.project.toUpperCase()}-`)) {
+    return {
+      content: [{ type: 'text', text: `Issue "${issueKey}" does not belong to project "${jiraClient.project}".` }],
+      isError: true,
+    };
+  }
+
   console.error(`Adding comment to ${issueKey}`);
 
   const result = await jiraClient.jiraPost(`/rest/api/3/issue/${issueKey}/comment`, {

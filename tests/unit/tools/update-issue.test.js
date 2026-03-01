@@ -12,6 +12,18 @@ const availableTransitions = [
   { id: '4', name: 'Done', to: { name: 'Done' } },
 ];
 
+const mockClient = (project = 'TEST') => ({
+  project,
+  sdk: {
+    issues: {
+      editIssue: vi.fn().mockResolvedValue({}),
+      getTransitions: vi.fn().mockResolvedValue({ transitions: availableTransitions }),
+      doTransition: vi.fn().mockResolvedValue({}),
+    },
+  },
+  jiraFetch: vi.fn().mockResolvedValue({ key: `${project}-1` }),
+});
+
 describe('updateIssue Schema', () => {
   it('should have the correct tool name', () => {
     expect(definition.name).toBe('updateIssue');
@@ -62,58 +74,41 @@ describe('updateIssue Status Transitions', () => {
 
 describe('updateIssue Handler', () => {
   it('should call editIssue when summary is provided', async () => {
-    const mockEditIssue = vi.fn().mockResolvedValue({});
-    const mockClient = {
-      sdk: {
-        issues: {
-          editIssue: mockEditIssue,
-          getTransitions: vi.fn().mockResolvedValue({ transitions: availableTransitions }),
-          doTransition: vi.fn().mockResolvedValue({}),
-        },
-      },
-      jiraFetch: vi.fn().mockResolvedValue({ key: 'TEST-1', fields: { summary: 'New' } }),
-    };
+    const client = mockClient('TEST');
+    await handler(client, { issueKey: 'TEST-1', summary: 'New Summary' });
 
-    await handler(mockClient, { issueKey: 'TEST-1', summary: 'New Summary' });
-
-    expect(mockEditIssue).toHaveBeenCalledWith({
+    expect(client.sdk.issues.editIssue).toHaveBeenCalledWith({
       issueIdOrKey: 'TEST-1',
       fields: { summary: 'New Summary' },
     });
   });
 
   it('should not call editIssue when no fields are provided', async () => {
-    const mockEditIssue = vi.fn();
-    const mockClient = {
-      sdk: {
-        issues: {
-          editIssue: mockEditIssue,
-          getTransitions: vi.fn().mockResolvedValue({ transitions: availableTransitions }),
-          doTransition: vi.fn().mockResolvedValue({}),
-        },
-      },
-      jiraFetch: vi.fn().mockResolvedValue({ key: 'TEST-1' }),
-    };
-
-    await handler(mockClient, { issueKey: 'TEST-1', status: 'Done' });
-
-    expect(mockEditIssue).not.toHaveBeenCalled();
+    const client = mockClient('TEST');
+    await handler(client, { issueKey: 'TEST-1', status: 'Done' });
+    expect(client.sdk.issues.editIssue).not.toHaveBeenCalled();
   });
 
   it('should return isError: true when status is not available', async () => {
-    const mockClient = {
-      sdk: {
-        issues: {
-          editIssue: vi.fn(),
-          getTransitions: vi.fn().mockResolvedValue({ transitions: availableTransitions }),
-        },
-      },
-      jiraFetch: vi.fn(),
-    };
-
-    const result = await handler(mockClient, { issueKey: 'TEST-1', status: 'Nonexistent Status' });
+    const client = mockClient('TEST');
+    const result = await handler(client, { issueKey: 'TEST-1', status: 'Nonexistent Status' });
 
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain('"Nonexistent Status" not available');
+  });
+
+  it('should return isError: true when issue does not belong to configured project', async () => {
+    const client = mockClient('TEST');
+    const result = await handler(client, { issueKey: 'OTHER-1', summary: 'Updated' });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain('"OTHER-1" does not belong to project "TEST"');
+    expect(client.sdk.issues.editIssue).not.toHaveBeenCalled();
+  });
+
+  it('should be case-insensitive when validating the project prefix', async () => {
+    const client = mockClient('TEST');
+    const result = await handler(client, { issueKey: 'test-1', summary: 'Updated' });
+    expect(result.isError).toBeUndefined();
   });
 });

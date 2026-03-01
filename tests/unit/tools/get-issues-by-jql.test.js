@@ -2,8 +2,13 @@
  * Unit Tests: getIssuesByJQL
  */
 
-import { describe, it, expect } from 'vitest';
-import { definition } from '../../../src/tools/get-issues-by-jql.js';
+import { describe, it, expect, vi } from 'vitest';
+import { definition, handler } from '../../../src/tools/get-issues-by-jql.js';
+
+const mockClient = (project = 'TEST') => ({
+  project,
+  jiraFetch: vi.fn().mockResolvedValue({ issues: [] }),
+});
 
 describe('getIssuesByJQL Schema', () => {
   it('should have the correct tool name', () => {
@@ -21,6 +26,34 @@ describe('getIssuesByJQL Schema', () => {
 
   it('should require jql', () => {
     expect(definition.inputSchema.required).toContain('jql');
+  });
+});
+
+describe('getIssuesByJQL JQL scoping', () => {
+  it('should prepend project filter when JQL has no project clause', async () => {
+    const client = mockClient('SCRUM');
+    await handler(client, { jql: 'status = "In Progress"' });
+
+    const calledUrl = client.jiraFetch.mock.calls[0][0];
+    expect(decodeURIComponent(calledUrl)).toContain('project = SCRUM AND status = "In Progress"');
+  });
+
+  it('should not modify JQL that already filters by project', async () => {
+    const client = mockClient('SCRUM');
+    await handler(client, { jql: 'project = SCRUM AND status = Done' });
+
+    const calledUrl = client.jiraFetch.mock.calls[0][0];
+    const decodedJql = decodeURIComponent(calledUrl.split('jql=')[1].split('&')[0]);
+    expect(decodedJql).toBe('project = SCRUM AND status = Done');
+  });
+
+  it('should not modify JQL that uses project in operator', async () => {
+    const client = mockClient('SCRUM');
+    await handler(client, { jql: 'project in (SCRUM, OTHER) ORDER BY created' });
+
+    const calledUrl = client.jiraFetch.mock.calls[0][0];
+    expect(decodeURIComponent(calledUrl)).toContain('project in (SCRUM, OTHER)');
+    expect(decodeURIComponent(calledUrl)).not.toContain('project = SCRUM AND project in');
   });
 });
 
