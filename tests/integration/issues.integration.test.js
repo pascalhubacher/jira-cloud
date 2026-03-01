@@ -1,12 +1,14 @@
 /**
- * Integration Tests for Jira Cloud MCP Server
+ * Integration Tests: Issues
  *
- * These tests run against a real Jira Cloud instance.
- * Make sure your .env file is configured correctly before running.
+ * Tests for getIssuesByJQL, createIssue, addComment, getComments, updateIssue.
+ * Runs against a real Jira Cloud instance — requires a valid .env file.
  *
- * Run with: npm run test:integration
+ * Run with: npm run test:integration:issues
+ *           npm run test:integration   (runs all integration tests)
+ *           npm run test:all           (runs unit + all integration tests)
  *
- * WARNING: These tests will create, modify, and read real Jira issues!
+ * WARNING: These tests create, modify, and delete real Jira issues!
  */
 
 import 'dotenv/config';
@@ -28,7 +30,6 @@ beforeAll(() => {
   jiraClient = createJiraClient(config);
 });
 
-// Helper to create a test issue
 async function createTestIssue(summary) {
   return jiraClient.jiraPost('/rest/api/3/issue', {
     fields: {
@@ -39,15 +40,12 @@ async function createTestIssue(summary) {
   });
 }
 
-// Helper to delete a test issue
 async function deleteTestIssue(issueKey) {
   try {
-    const auth = Buffer.from(
-      `${config.jira.email}:${config.jira.apiToken}`
-    ).toString('base64');
+    const auth = Buffer.from(`${config.jira.email}:${config.jira.apiToken}`).toString('base64');
     await fetch(`${config.jira.host}/rest/api/3/issue/${issueKey}`, {
       method: 'DELETE',
-      headers: { 'Authorization': `Basic ${auth}` },
+      headers: { Authorization: `Basic ${auth}` },
     });
     console.log(`Cleaned up test issue: ${issueKey}`);
   } catch (err) {
@@ -126,7 +124,6 @@ describe('createIssue', () => {
 
     expect(issue.key).toBeDefined();
     expect(issue.key).toMatch(new RegExp(`^${TEST_PROJECT_KEY}-\\d+$`));
-
     createdIssueKey = issue.key;
     console.log(`Created issue: ${issue.key}`);
   });

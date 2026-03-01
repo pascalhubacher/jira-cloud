@@ -6,7 +6,10 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:integration": "vitest run --config vitest.integration.config.js"
+    "test:integration": "vitest run --config vitest.integration.config.js",
+    "test:integration:issues": "vitest run --config vitest.integration.config.js tests/integration/issues.integration.test.js",
+    "test:integration:epics": "vitest run --config vitest.integration.config.js tests/integration/epics.integration.test.js",
+    "test:all": "npm run test && npm run test:integration"
   },
   "keywords": [],
   "author": "",
