@@ -229,8 +229,17 @@ npm run test:integration
 
 ```
 tests/
-├── tools.test.js              # Unit tests for tool schemas and helpers
-└── jira.integration.test.js   # Integration tests against real Jira API
+├── unit/
+│   ├── config.test.js              # Config validation tests
+│   ├── tool-registry.test.js       # Registry structure and lookup tests
+│   └── tools/
+│       ├── get-issues-by-jql.test.js
+│       ├── create-issue.test.js
+│       ├── add-comment.test.js
+│       ├── update-issue.test.js
+│       └── get-comments.test.js
+└── integration/
+    └── jira.integration.test.js    # Integration tests against real Jira API
 ```
 
 ### Test Coverage
@@ -250,7 +259,7 @@ tests/
 The integration tests use constants that you may need to adjust for your Jira project:
 
 ```javascript
-// tests/jira.integration.test.js
+// tests/integration/jira.integration.test.js
 const TEST_PROJECT_KEY = 'SCRUM';      // Your project key
 const TEST_ISSUE_TYPE_ID = '10003';    // Issue type ID (e.g., Story)
 ```
