@@ -33,7 +33,7 @@ describe('updateIssue Schema', () => {
     expect(definition.inputSchema.properties.issueKey.type).toBe('string');
   });
 
-  it('should have optional summary, description, status, assigneeAccountId, labels, and storyPoints properties', () => {
+  it('should have optional summary, description, status, assigneeAccountId, labels, storyPoints, and parentKey properties', () => {
     expect(definition.inputSchema.properties.summary.type).toBe('string');
     expect(definition.inputSchema.properties.description.type).toBe('string');
     expect(definition.inputSchema.properties.status.type).toBe('string');
@@ -41,6 +41,7 @@ describe('updateIssue Schema', () => {
     expect(definition.inputSchema.properties.labels.type).toBe('array');
     expect(definition.inputSchema.properties.labels.items.type).toBe('string');
     expect(definition.inputSchema.properties.storyPoints.type).toBe('number');
+    expect(definition.inputSchema.properties.parentKey.type).toBe('string');
   });
 
   it('should only require issueKey', () => {
@@ -154,5 +155,24 @@ describe('updateIssue Handler', () => {
     const client = mockClient('TEST');
     const result = await handler(client, { issueKey: 'test-1', summary: 'Updated' });
     expect(result.isError).toBeUndefined();
+  });
+
+  it('should set parent field when parentKey is provided', async () => {
+    const client = mockClient('TEST');
+    await handler(client, { issueKey: 'TEST-2', parentKey: 'TEST-1' });
+
+    expect(client.sdk.issues.editIssue).toHaveBeenCalledWith({
+      issueIdOrKey: 'TEST-2',
+      fields: { parent: { key: 'TEST-1' } },
+    });
+  });
+
+  it('should return isError: true when parentKey does not belong to configured project', async () => {
+    const client = mockClient('TEST');
+    const result = await handler(client, { issueKey: 'TEST-2', parentKey: 'OTHER-1' });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain('"OTHER-1" does not belong to project "TEST"');
+    expect(client.sdk.issues.editIssue).not.toHaveBeenCalled();
   });
 });

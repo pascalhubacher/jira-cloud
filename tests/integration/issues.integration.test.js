@@ -145,6 +145,50 @@ describe('createIssue', () => {
 });
 
 // =============================================================================
+// Subtask TESTS
+// =============================================================================
+
+describe('createIssue (subtask)', () => {
+  let parentIssueKey;
+  let subtaskKey;
+
+  beforeAll(async () => {
+    const parent = await createTestIssue(`[TEST] Parent Issue for Subtask - ${new Date().toISOString()}`);
+    parentIssueKey = parent.key;
+    console.log(`Created parent issue: ${parentIssueKey}`);
+  });
+
+  it('should create a subtask with parent field', async () => {
+    const subtask = await jiraClient.jiraPost('/rest/api/3/issue', {
+      fields: {
+        project: { key: TEST_PROJECT_KEY },
+        summary: `[TEST] Subtask of ${parentIssueKey} - ${new Date().toISOString()}`,
+        issuetype: { name: 'Subtask' },
+        parent: { key: parentIssueKey },
+      },
+    });
+
+    expect(subtask.key).toBeDefined();
+    expect(subtask.key).toMatch(new RegExp(`^${TEST_PROJECT_KEY}-\\d+$`));
+    subtaskKey = subtask.key;
+    console.log(`Created subtask: ${subtaskKey} under ${parentIssueKey}`);
+  });
+
+  it('should verify subtask parent is set correctly', async () => {
+    if (!subtaskKey) return;
+    const issue = await jiraClient.jiraFetch(`/rest/api/3/issue/${subtaskKey}`);
+    expect(issue.fields.parent).toBeDefined();
+    expect(issue.fields.parent.key).toBe(parentIssueKey);
+    console.log(`Verified parent of ${subtaskKey} is ${issue.fields.parent.key}`);
+  });
+
+  afterAll(async () => {
+    if (subtaskKey) await deleteTestIssue(subtaskKey);
+    if (parentIssueKey) await deleteTestIssue(parentIssueKey);
+  });
+});
+
+// =============================================================================
 // addComment TESTS
 // =============================================================================
 

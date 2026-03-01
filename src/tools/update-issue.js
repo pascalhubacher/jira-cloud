@@ -38,17 +38,28 @@ export const definition = {
         type: 'number',
         description: 'Story point estimate (maps to story_points field; some instances use customfield_10016)',
       },
+      parentKey: {
+        type: 'string',
+        description: 'New parent issue key to re-parent a subtask (e.g., TEST-10)',
+      },
     },
     required: ['issueKey'],
   },
 };
 
 export async function handler(jiraClient, args) {
-  const { issueKey, summary, description, status, assigneeAccountId, labels, storyPoints } = args;
+  const { issueKey, summary, description, status, assigneeAccountId, labels, storyPoints, parentKey } = args;
 
   if (!issueKey.toUpperCase().startsWith(`${jiraClient.project.toUpperCase()}-`)) {
     return {
       content: [{ type: 'text', text: `Issue "${issueKey}" does not belong to project "${jiraClient.project}".` }],
+      isError: true,
+    };
+  }
+
+  if (parentKey && !parentKey.toUpperCase().startsWith(`${jiraClient.project.toUpperCase()}-`)) {
+    return {
+      content: [{ type: 'text', text: `Parent issue "${parentKey}" does not belong to project "${jiraClient.project}".` }],
       isError: true,
     };
   }
@@ -62,6 +73,7 @@ export async function handler(jiraClient, args) {
   if (assigneeAccountId) fields.assignee = { accountId: assigneeAccountId };
   if (labels) fields.labels = labels;
   if (storyPoints != null) fields.story_points = storyPoints;
+  if (parentKey) fields.parent = { key: parentKey };
 
   if (Object.keys(fields).length > 0) {
     await jiraClient.sdk.issues.editIssue({ issueIdOrKey: issueKey, fields });

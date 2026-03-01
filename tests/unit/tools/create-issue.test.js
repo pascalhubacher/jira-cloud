@@ -44,6 +44,10 @@ describe('createIssue Schema', () => {
     expect(definition.inputSchema.properties.storyPoints.type).toBe('number');
   });
 
+  it('should have a parentKey property of type string', () => {
+    expect(definition.inputSchema.properties.parentKey.type).toBe('string');
+  });
+
   it('should only require summary (projectKey defaults to configured project)', () => {
     expect(definition.inputSchema.required).toContain('summary');
     expect(definition.inputSchema.required).not.toContain('projectKey');
@@ -128,5 +132,50 @@ describe('createIssue Handler', () => {
 
     const callArgs = client.sdk.issues.createIssue.mock.calls[0][0];
     expect(callArgs.fields).not.toHaveProperty('story_points');
+  });
+
+  it('should create a subtask with parent field and default issueType Subtask', async () => {
+    const client = mockClient('TEST');
+    await handler(client, { summary: 'My Subtask', parentKey: 'TEST-10' });
+
+    expect(client.sdk.issues.createIssue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fields: expect.objectContaining({
+          parent: { key: 'TEST-10' },
+          issuetype: { name: 'Subtask' },
+        }),
+      })
+    );
+  });
+
+  it('should respect explicit issueType even when parentKey is set', async () => {
+    const client = mockClient('TEST');
+    await handler(client, { summary: 'My Subtask', parentKey: 'TEST-10', issueType: 'Bug' });
+
+    expect(client.sdk.issues.createIssue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fields: expect.objectContaining({ issuetype: { name: 'Bug' } }),
+      })
+    );
+  });
+
+  it('should default issueType to Task when parentKey is omitted', async () => {
+    const client = mockClient('TEST');
+    await handler(client, { summary: 'Regular issue' });
+
+    expect(client.sdk.issues.createIssue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fields: expect.objectContaining({ issuetype: { name: 'Task' } }),
+      })
+    );
+  });
+
+  it('should return isError: true when parentKey does not belong to configured project', async () => {
+    const client = mockClient('TEST');
+    const result = await handler(client, { summary: 'My Subtask', parentKey: 'OTHER-10' });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain('"OTHER-10" does not belong to project "TEST"');
+    expect(client.sdk.issues.createIssue).not.toHaveBeenCalled();
   });
 });
