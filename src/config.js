@@ -9,9 +9,10 @@ export function validateConfig() {
   const host = process.env.JIRA_HOST;
   const email = process.env.JIRA_EMAIL;
   const apiToken = process.env.JIRA_API_TOKEN;
-  if (!host || !email || !apiToken) {
+  const project = process.env.JIRA_PROJECT;
+  if (!host || !email || !apiToken || !project) {
     throw new Error(
-      'Missing required environment variables: JIRA_HOST, JIRA_EMAIL, JIRA_API_TOKEN'
+      'Missing required environment variables: JIRA_HOST, JIRA_EMAIL, JIRA_API_TOKEN, JIRA_PROJECT'
     );
   }
 }
@@ -22,6 +23,7 @@ const config = {
       host: process.env.JIRA_HOST,
       email: process.env.JIRA_EMAIL,
       apiToken: process.env.JIRA_API_TOKEN,
+      project: process.env.JIRA_PROJECT,
     };
   },
   server: {

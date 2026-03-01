@@ -20,6 +20,14 @@ export const definition = {
 
 export async function handler(jiraClient, args) {
   const { issueKey } = args;
+
+  if (!issueKey.toUpperCase().startsWith(`${jiraClient.project.toUpperCase()}-`)) {
+    return {
+      content: [{ type: 'text', text: `Issue "${issueKey}" does not belong to project "${jiraClient.project}".` }],
+      isError: true,
+    };
+  }
+
   console.error(`Getting comments for ${issueKey}`);
 
   const comments = await jiraClient.sdk.issueComments.getComments({

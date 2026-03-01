@@ -11,7 +11,7 @@ export const definition = {
     properties: {
       projectKey: {
         type: 'string',
-        description: 'Project key (e.g., TEST)',
+        description: 'Project key (e.g., TEST). Defaults to the configured project if omitted.',
       },
       summary: {
         type: 'string',
@@ -26,12 +26,20 @@ export const definition = {
         description: 'Type (Task, Bug, etc.)',
       },
     },
-    required: ['projectKey', 'summary'],
+    required: ['summary'],
   },
 };
 
 export async function handler(jiraClient, args) {
-  const { projectKey, summary, description, issueType = 'Task' } = args;
+  const { projectKey = jiraClient.project, summary, description, issueType = 'Task' } = args;
+
+  if (projectKey.toUpperCase() !== jiraClient.project.toUpperCase()) {
+    return {
+      content: [{ type: 'text', text: `Project "${projectKey}" is not allowed. This server is scoped to project "${jiraClient.project}".` }],
+      isError: true,
+    };
+  }
+
   console.error(`Creating issue in ${projectKey}`);
 
   const issue = await jiraClient.sdk.issues.createIssue({

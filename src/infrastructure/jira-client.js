@@ -14,7 +14,7 @@
 import { Version3Client } from 'jira.js';
 
 export function createJiraClient(config) {
-  const { host, email, apiToken } = config.jira;
+  const { host, email, apiToken, project } = config.jira;
   const auth = Buffer.from(`${email}:${apiToken}`).toString('base64');
 
   const sdk = new Version3Client({
@@ -47,5 +47,5 @@ export function createJiraClient(config) {
     return response.json();
   };
 
-  return { sdk, jiraFetch, jiraPost };
+  return { sdk, jiraFetch, jiraPost, project };
 }

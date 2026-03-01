@@ -9,6 +9,28 @@ A Model Context Protocol (MCP) server that provides tools to interact with Jira 
 - **Update Issues**: Modify issue fields and transition status
 - **Comments**: Add and retrieve comments on issues
 
+## Project Structure
+
+```
+jira-cloud/
+├── index.js                        # Entry point
+├── src/
+│   ├── server.js                   # Composition root (MCP server wiring)
+│   ├── config.js                   # Environment configuration
+│   ├── infrastructure/
+│   │   └── jira-client.js          # Jira REST API + SDK client
+│   └── tools/
+│       ├── index.js                # Tool registry
+│       ├── get-issues-by-jql.js
+│       ├── create-issue.js
+│       ├── add-comment.js
+│       ├── update-issue.js
+│       └── get-comments.js
+└── tests/
+    ├── unit/                       # Unit tests (no API calls)
+    └── integration/                # Integration tests (real Jira)
+```
+
 ## Prerequisites
 
 - Node.js v18 or higher
@@ -38,6 +60,7 @@ Create a `.env` file in the project root directory with your Jira credentials:
 JIRA_HOST="https://your-domain.atlassian.net"
 JIRA_EMAIL="your-email@example.com"
 JIRA_API_TOKEN="your-api-token-here"
+JIRA_PROJECT="YOUR-PROJECT-KEY"
 ```
 
 ### How to get your Jira API Token
@@ -51,6 +74,7 @@ JIRA_API_TOKEN="your-api-token-here"
 **Important:**
 - The `JIRA_HOST` must include the protocol (`https://`)
 - The `JIRA_EMAIL` must match your Atlassian account email
+- The `JIRA_PROJECT` scopes all commands to a single project — operations on other projects are rejected
 - Keep your `.env` file secure and never commit it to version control
 
 ### Example `.env` file
@@ -59,6 +83,7 @@ JIRA_API_TOKEN="your-api-token-here"
 JIRA_HOST="https://mycompany.atlassian.net"
 JIRA_EMAIL="john.doe@mycompany.com"
 JIRA_API_TOKEN="ATATT3xFfGF0..."
+JIRA_PROJECT="SCRUM"
 ```
 
 ## Running the Server
@@ -95,7 +120,8 @@ If the server runs in WSL (Windows Subsystem for Linux), use this configuration:
       "env": {
         "JIRA_HOST": "https://your-domain.atlassian.net",
         "JIRA_EMAIL": "your-email@example.com",
-        "JIRA_API_TOKEN": "your-api-token"
+        "JIRA_API_TOKEN": "your-api-token",
+        "JIRA_PROJECT": "YOUR-PROJECT-KEY"
       }
     }
   }
@@ -122,7 +148,8 @@ To find your Node.js path in WSL, run: `which node`
       "env": {
         "JIRA_HOST": "https://your-domain.atlassian.net",
         "JIRA_EMAIL": "your-email@example.com",
-        "JIRA_API_TOKEN": "your-api-token"
+        "JIRA_API_TOKEN": "your-api-token",
+        "JIRA_PROJECT": "YOUR-PROJECT-KEY"
       }
     }
   }
@@ -135,20 +162,21 @@ After updating the configuration, restart Claude Desktop.
 
 ### getIssuesByJQL
 
-Search for Jira issues using JQL queries.
+Fetch Jira issues using a JQL query.
 
 **Parameters:**
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `jql` | string | Yes | JQL query string (e.g., `project = TEST`) |
-| `maxResults` | number | No | Maximum number of results (default: 50) |
+| `jql` | string | Yes | JQL string (e.g., `project = TEST`) |
+| `maxResults` | number | No | Limit results (default: 50) |
+
+**Note:** If the JQL does not already contain a `project` filter, the server automatically prepends `project = <JIRA_PROJECT> AND` to scope results to the configured project.
 
 **Example queries:**
-- `project = MYPROJECT` - All issues in a project
 - `assignee = currentUser()` - Issues assigned to you
 - `status = "In Progress"` - Issues in progress
 - `created >= -7d` - Issues created in the last 7 days
-- `project = TEST AND status != Done ORDER BY priority DESC` - Complex query
+- `status != Done ORDER BY priority DESC` - Complex query
 
 ### createIssue
 
@@ -157,10 +185,12 @@ Create a new Jira issue.
 **Parameters:**
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `projectKey` | string | Yes | Project key (e.g., `TEST`) |
+| `projectKey` | string | No | Project key (e.g., `TEST`). Defaults to the configured project if omitted. |
 | `summary` | string | Yes | Issue title |
-| `description` | string | No | Issue description |
-| `issueType` | string | No | Issue type (default: `Task`) |
+| `description` | string | No | Issue details |
+| `issueType` | string | No | Type (Task, Bug, etc.) (default: `Task`) |
+
+**Note:** Only issues in the configured `JIRA_PROJECT` can be created. Specifying a different project key returns an error.
 
 **Supported issue types:** Task, Bug, Story, Epic (depends on your project configuration)
 

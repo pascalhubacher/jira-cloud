@@ -32,6 +32,14 @@ export const definition = {
 
 export async function handler(jiraClient, args) {
   const { issueKey, summary, description, status } = args;
+
+  if (!issueKey.toUpperCase().startsWith(`${jiraClient.project.toUpperCase()}-`)) {
+    return {
+      content: [{ type: 'text', text: `Issue "${issueKey}" does not belong to project "${jiraClient.project}".` }],
+      isError: true,
+    };
+  }
+
   console.error(`Updating issue ${issueKey}`);
 
   // Update fields if any were provided
