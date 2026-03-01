@@ -10,8 +10,12 @@ import * as createIssue from './create-issue.js';
 import * as addComment from './add-comment.js';
 import * as updateIssue from './update-issue.js';
 import * as getComments from './get-comments.js';
+import * as getEpics from './get-epics.js';
+import * as createEpic from './create-epic.js';
+import * as updateEpic from './update-epic.js';
+import * as getEpicIssues from './get-epic-issues.js';
 
-const tools = [getIssuesByJQL, createIssue, addComment, updateIssue, getComments];
+const tools = [getIssuesByJQL, createIssue, addComment, updateIssue, getComments, getEpics, createEpic, updateEpic, getEpicIssues];
 
 export function getToolDefinitions() {
   return tools.map((t) => t.definition);

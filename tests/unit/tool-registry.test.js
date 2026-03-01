@@ -10,8 +10,8 @@ import { getToolDefinitions, getToolHandler } from '../../src/tools/index.js';
 const tools = getToolDefinitions();
 
 describe('Tool Registry', () => {
-  it('should have 5 tools defined', () => {
-    expect(tools).toHaveLength(5);
+  it('should have 9 tools defined', () => {
+    expect(tools).toHaveLength(9);
   });
 
   it('should have unique tool names', () => {

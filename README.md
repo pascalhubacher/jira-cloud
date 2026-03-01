@@ -8,6 +8,7 @@ A Model Context Protocol (MCP) server that provides tools to interact with Jira 
 - **Create Issues**: Create new Jira issues with customizable fields
 - **Update Issues**: Modify issue fields and transition status
 - **Comments**: Add and retrieve comments on issues
+- **Epics**: List, create, update epics and retrieve all child issues of an epic
 
 ## Project Structure
 
@@ -25,7 +26,11 @@ jira-cloud/
 │       ├── create-issue.js
 │       ├── add-comment.js
 │       ├── update-issue.js
-│       └── get-comments.js
+│       ├── get-comments.js
+│       ├── get-epics.js
+│       ├── create-epic.js
+│       ├── update-epic.js
+│       └── get-epic-issues.js
 └── tests/
     ├── unit/                       # Unit tests (no API calls)
     └── integration/                # Integration tests (real Jira)
@@ -227,6 +232,53 @@ Get all comments from a Jira issue.
 |-----------|------|----------|-------------|
 | `issueKey` | string | Yes | Issue key (e.g., `TEST-123`) |
 
+### getEpics
+
+List all epics in the configured Jira project.
+
+**Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `maxResults` | number | No | Maximum number of epics to return (default: 50) |
+
+### createEpic
+
+Create a new Epic in the configured Jira project.
+
+**Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `summary` | string | Yes | Epic title |
+| `epicName` | string | No | Short Epic name label (defaults to summary if omitted) |
+| `description` | string | No | Epic details |
+
+**Note:** Epics require an Epic Name field (`customfield_10011`) in Jira. When `epicName` is omitted it defaults to the value of `summary`.
+
+### updateEpic
+
+Update fields of an existing Epic (summary, epicName, description, status).
+
+**Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `issueKey` | string | Yes | Epic key (e.g., `TEST-42`) |
+| `summary` | string | No | New epic title |
+| `epicName` | string | No | New short Epic name label (customfield_10011) |
+| `description` | string | No | New epic description |
+| `status` | string | No | New status (e.g., `In Progress`, `Done`) |
+
+**Note:** Status transitions depend on your project's workflow configuration.
+
+### getEpicIssues
+
+Get all child issues (Stories, Tasks, Bugs, etc.) belonging to an Epic.
+
+**Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `epicKey` | string | Yes | Epic key (e.g., `TEST-42`) |
+| `maxResults` | number | No | Maximum number of issues to return (default: 50) |
+
 ## Testing
 
 The project includes both unit tests and integration tests using [Vitest](https://vitest.dev/).
@@ -250,7 +302,10 @@ npm run test:watch
 Integration tests run against a real Jira Cloud instance. Make sure your `.env` file is configured correctly before running.
 
 ```bash
-npm run test:integration
+npm run test:integration          # all integration tests (issues + epics)
+npm run test:integration:issues   # only issue-related integration tests
+npm run test:integration:epics    # only epic-related integration tests
+npm run test:all                  # unit tests + all integration tests
 ```
 
 **Warning:** Integration tests will create, modify, and delete real Jira issues in your project. Test issues are automatically cleaned up after each test.
@@ -267,21 +322,30 @@ tests/
 │       ├── create-issue.test.js
 │       ├── add-comment.test.js
 │       ├── update-issue.test.js
-│       └── get-comments.test.js
+│       ├── get-comments.test.js
+│       ├── get-epics.test.js
+│       ├── create-epic.test.js
+│       ├── update-epic.test.js
+│       └── get-epic-issues.test.js
 └── integration/
-    └── jira.integration.test.js    # Integration tests against real Jira API
+    ├── issues.integration.test.js  # Integration tests for issue tools
+    └── epics.integration.test.js   # Integration tests for epic tools
 ```
 
 ### Test Coverage
 
 | Test Suite | Description |
 |------------|-------------|
-| **Tool Definitions** | Validates all 5 tools have correct schemas |
+| **Tool Definitions** | Validates all 9 tools have correct schemas |
 | **getIssuesByJQL** | Tests JQL search, pagination, error handling |
 | **createIssue** | Tests issue creation and validation |
 | **addComment** | Tests adding comments to issues |
 | **getComments** | Tests retrieving comments |
 | **updateIssue** | Tests field updates and status transitions |
+| **getEpics** | Tests listing epics by JQL |
+| **createEpic** | Tests epic creation with Epic Name field |
+| **updateEpic** | Tests epic field updates and status transitions |
+| **getEpicIssues** | Tests retrieving child issues of an epic |
 | **Error Handling** | Tests graceful handling of invalid inputs |
 
 ### Customizing Integration Tests
@@ -289,7 +353,8 @@ tests/
 The integration tests use constants that you may need to adjust for your Jira project:
 
 ```javascript
-// tests/integration/jira.integration.test.js
+// tests/integration/issues.integration.test.js
+// tests/integration/epics.integration.test.js
 const TEST_PROJECT_KEY = 'SCRUM';      // Your project key
 const TEST_ISSUE_TYPE_ID = '10003';    // Issue type ID (e.g., Story)
 ```

@@ -31,7 +31,11 @@ index.js                      ← entry point (4 lines, loads .env, starts serve
               ├── create-issue.js
               ├── add-comment.js
               ├── update-issue.js
-              └── get-comments.js
+              ├── get-comments.js
+              ├── get-epics.js
+              ├── create-epic.js
+              ├── update-epic.js
+              └── get-epic-issues.js
 ```
 
 **Key constraint:** Tool files receive `jiraClient` via function parameter (dependency injection). They do NOT import from `src/infrastructure/` or `src/config.js` directly. This keeps tools independently testable with mock clients.
@@ -122,6 +126,10 @@ Registry order (also the order tools are listed to clients):
 3. `addComment`
 4. `updateIssue`
 5. `getComments`
+6. `getEpics`
+7. `createEpic`
+8. `updateEpic`
+9. `getEpicIssues`
 
 ---
 
@@ -304,6 +312,112 @@ Each tool file exports:
 
 ---
 
+### Tool: `getEpics`
+
+**Purpose:** List all epics in the configured Jira project.
+
+**Input schema:**
+```json
+{
+  "type": "object",
+  "properties": {
+    "maxResults": { "type": "number", "description": "Maximum number of epics to return", "default": 50 }
+  },
+  "required": []
+}
+```
+
+**Behaviour:**
+1. Builds JQL: `issuetype = Epic AND project = <JIRA_PROJECT> ORDER BY created DESC`.
+2. Calls `GET /rest/api/3/search/jql?jql=<encoded>&maxResults=<n>` — returns issue stubs.
+3. For each stub, fetches full details via `GET /rest/api/3/issue/<id>`.
+4. Returns all full epic objects as a JSON array.
+
+---
+
+### Tool: `createEpic`
+
+**Purpose:** Create a new Epic in the configured Jira project.
+
+**Input schema:**
+```json
+{
+  "type": "object",
+  "properties": {
+    "summary": { "type": "string", "description": "Epic title" },
+    "epicName": { "type": "string", "description": "Short Epic name label (defaults to summary if omitted)" },
+    "description": { "type": "string", "description": "Epic details" }
+  },
+  "required": ["summary"]
+}
+```
+
+**Behaviour:**
+1. `epicName` defaults to `summary` if omitted.
+2. Builds `fields` object: `project: { key: jiraClient.project }`, `summary`, `issuetype: { name: 'Epic' }`, `customfield_10011: epicName`.
+3. Adds `description` to fields only if provided (omitting the key entirely when absent).
+4. Uses `jiraClient.sdk.issues.createIssue({ fields })`.
+5. Returns the created epic object (includes `key`, `id`, `self`).
+
+**Note:** `customfield_10011` is the Epic Name field required by many Jira Cloud instances. Creating an epic without it may result in a 400 error depending on the project's field configuration.
+
+---
+
+### Tool: `updateEpic`
+
+**Purpose:** Update fields and/or status of an existing Epic.
+
+**Input schema:**
+```json
+{
+  "type": "object",
+  "properties": {
+    "issueKey": { "type": "string", "description": "Epic key (e.g., TEST-42)" },
+    "summary": { "type": "string", "description": "New epic title" },
+    "epicName": { "type": "string", "description": "New short Epic name label (customfield_10011)" },
+    "description": { "type": "string", "description": "New epic description" },
+    "status": { "type": "string", "description": "New status (e.g., \"In Progress\", \"Done\")" }
+  },
+  "required": ["issueKey"]
+}
+```
+
+**Behaviour:**
+1. Validates `issueKey` belongs to `JIRA_PROJECT`. Returns `isError: true` otherwise.
+2. If `summary`, `description`, or `epicName` provided → calls `sdk.issues.editIssue({ issueIdOrKey, fields })` where `epicName` maps to `customfield_10011`.
+3. If `status` provided → calls `sdk.issues.getTransitions({ issueIdOrKey })`, finds a matching transition (case-insensitive match on `transition.name` OR `transition.to.name`), calls `sdk.issues.doTransition({ issueIdOrKey, transition: { id } })`.
+4. If no matching transition found → returns `isError: true` with list of available status names.
+5. Fetches and returns the full updated epic via `jiraFetch`.
+
+---
+
+### Tool: `getEpicIssues`
+
+**Purpose:** Get all child issues (Stories, Tasks, Bugs, etc.) belonging to an Epic.
+
+**Input schema:**
+```json
+{
+  "type": "object",
+  "properties": {
+    "epicKey": { "type": "string", "description": "Epic key (e.g., TEST-42)" },
+    "maxResults": { "type": "number", "description": "Maximum number of issues to return", "default": 50 }
+  },
+  "required": ["epicKey"]
+}
+```
+
+**Behaviour:**
+1. Validates `epicKey` belongs to `JIRA_PROJECT`. Returns `isError: true` otherwise.
+2. Builds JQL: `parent = <epicKey> ORDER BY created ASC`.
+3. Calls `GET /rest/api/3/search/jql?jql=<encoded>&maxResults=<n>` — returns issue stubs.
+4. For each stub, fetches full details via `GET /rest/api/3/issue/<id>`.
+5. Returns all full child issue objects as a JSON array.
+
+**Note:** Uses the `parent =` JQL operator which works for both classic (company-managed) and next-gen (team-managed) Jira Cloud projects using API v3.
+
+---
+
 ## MCP Protocol Usage
 
 The server communicates over stdio using JSON-RPC 2.0. Clients discover tools with `tools/list` and invoke them with `tools/call`.
@@ -412,14 +526,21 @@ All tool results are JSON strings inside the `text` field of a text content bloc
 ## Testing
 
 ```bash
-npm test                    # unit tests (41+ tests, no API calls)
-npm run test:watch          # unit tests in watch mode
-npm run test:integration    # integration tests (requires valid .env)
+npm test                          # unit tests (99 tests, no API calls)
+npm run test:watch                # unit tests in watch mode
+npm run test:integration          # all integration tests (requires valid .env)
+npm run test:integration:issues   # only issue integration tests
+npm run test:integration:epics    # only epic integration tests
+npm run test:all                  # unit tests + all integration tests
 ```
 
 **Unit test location:** `tests/unit/` — includes `config.test.js`, `tool-registry.test.js`, and one file per tool in `tests/unit/tools/`.
 
-**Integration test location:** `tests/integration/jira.integration.test.js` — runs against real Jira. Creates and deletes real issues (cleaned up with `afterAll`). Uses `TEST_PROJECT_KEY = 'SCRUM'` and `TEST_ISSUE_TYPE_ID = '10003'` (Story — adjust for your project).
+**Integration test locations:**
+- `tests/integration/issues.integration.test.js` — tests for getIssuesByJQL, createIssue, addComment, getComments, updateIssue, and error handling. Creates and deletes real issues (`afterAll`).
+- `tests/integration/epics.integration.test.js` — tests for getEpics, createEpic, updateEpic, getEpicIssues. Creates and deletes real epics and child issues (`afterAll`).
+
+Both files use `TEST_PROJECT_KEY = 'SCRUM'` and `TEST_ISSUE_TYPE_ID = '10003'` (Story — adjust for your project).
 
 **Vitest configs:**
 - `vitest.config.js` → includes `tests/unit/**/*.test.js`
