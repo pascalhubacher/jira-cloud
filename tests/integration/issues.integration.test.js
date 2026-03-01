@@ -274,6 +274,19 @@ describe('updateIssue', () => {
     console.log(`Assigned ${testIssueKey} to: ${myself.displayName}`);
   });
 
+  it('should set labels on an issue', async () => {
+    await jiraClient.sdk.issues.editIssue({
+      issueIdOrKey: testIssueKey,
+      fields: { labels: ['integration-test', 'automated'] },
+    });
+
+    const updatedIssue = await jiraClient.jiraFetch(`/rest/api/3/issue/${testIssueKey}`);
+    expect(Array.isArray(updatedIssue.fields.labels)).toBe(true);
+    expect(updatedIssue.fields.labels).toContain('integration-test');
+    expect(updatedIssue.fields.labels).toContain('automated');
+    console.log(`Set labels on ${testIssueKey}: ${updatedIssue.fields.labels.join(', ')}`);
+  });
+
   it('should get available transitions', async () => {
     const transitions = await jiraClient.sdk.issues.getTransitions({
       issueIdOrKey: testIssueKey,

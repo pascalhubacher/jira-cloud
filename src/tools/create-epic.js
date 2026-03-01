@@ -23,13 +23,18 @@ export const definition = {
         type: 'string',
         description: 'Epic details',
       },
+      labels: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'List of labels to apply (e.g., ["backend", "urgent"])',
+      },
     },
     required: ['summary'],
   },
 };
 
 export async function handler(jiraClient, args) {
-  const { summary, epicName = summary, description } = args;
+  const { summary, epicName = summary, description, labels } = args;
 
   console.error(`Creating epic in ${jiraClient.project}: ${summary}`);
 
@@ -40,9 +45,8 @@ export async function handler(jiraClient, args) {
     customfield_10011: epicName,
   };
 
-  if (description) {
-    fields.description = description;
-  }
+  if (description) fields.description = description;
+  if (labels) fields.labels = labels;
 
   const epic = await jiraClient.sdk.issues.createIssue({ fields });
 

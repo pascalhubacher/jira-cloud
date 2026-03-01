@@ -152,6 +152,19 @@ describe('updateEpic', () => {
     console.log(`Assigned ${testEpicKey} to: ${myself.displayName}`);
   });
 
+  it('should set labels on an epic', async () => {
+    await jiraClient.sdk.issues.editIssue({
+      issueIdOrKey: testEpicKey,
+      fields: { labels: ['integration-test', 'automated'] },
+    });
+
+    const updated = await jiraClient.jiraFetch(`/rest/api/3/issue/${testEpicKey}`);
+    expect(Array.isArray(updated.fields.labels)).toBe(true);
+    expect(updated.fields.labels).toContain('integration-test');
+    expect(updated.fields.labels).toContain('automated');
+    console.log(`Set labels on ${testEpicKey}: ${updated.fields.labels.join(', ')}`);
+  });
+
   it('should update epic name (customfield_10011)', async () => {
     await jiraClient.sdk.issues.editIssue({
       issueIdOrKey: testEpicKey,

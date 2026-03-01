@@ -213,7 +213,8 @@ Each tool file exports:
     "projectKey": { "type": "string", "description": "Project key (e.g., TEST). Defaults to the configured project if omitted." },
     "summary": { "type": "string", "description": "Issue title" },
     "description": { "type": "string", "description": "Issue details" },
-    "issueType": { "type": "string", "description": "Type (Task, Bug, etc.)" }
+    "issueType": { "type": "string", "description": "Type (Task, Bug, etc.)" },
+    "labels": { "type": "array", "items": { "type": "string" }, "description": "Labels to apply" }
   },
   "required": ["summary"]
 }
@@ -223,7 +224,7 @@ Each tool file exports:
 1. `projectKey` defaults to `jiraClient.project` if omitted.
 2. If `projectKey` (case-insensitive) does not match `jiraClient.project`, returns `isError: true` — no cross-project creation allowed.
 3. `issueType` defaults to `"Task"`.
-4. Uses `jiraClient.sdk.issues.createIssue({ fields: { project, summary, description, issuetype } })`.
+4. Uses `jiraClient.sdk.issues.createIssue({ fields: { project, summary, description, issuetype, labels? } })`.
 5. Returns the created issue object (includes `key`, `id`, `self`).
 
 ---
@@ -276,7 +277,8 @@ Each tool file exports:
     "summary": { "type": "string", "description": "New issue title" },
     "description": { "type": "string", "description": "New issue description" },
     "status": { "type": "string", "description": "New status (e.g., \"In Progress\", \"Done\")" },
-    "assigneeAccountId": { "type": "string", "description": "Atlassian account ID of the assignee" }
+    "assigneeAccountId": { "type": "string", "description": "Atlassian account ID of the assignee" },
+    "labels": { "type": "array", "items": { "type": "string" }, "description": "Labels to apply, replaces existing labels" }
   },
   "required": ["issueKey"]
 }
@@ -284,7 +286,7 @@ Each tool file exports:
 
 **Behaviour:**
 1. Validates `issueKey` belongs to `JIRA_PROJECT`. Returns `isError: true` otherwise.
-2. If `summary`, `description`, or `assigneeAccountId` provided → calls `sdk.issues.editIssue({ issueIdOrKey, fields })`. `assigneeAccountId` maps to `fields.assignee = { accountId: assigneeAccountId }`.
+2. If `summary`, `description`, `assigneeAccountId`, or `labels` provided → calls `sdk.issues.editIssue({ issueIdOrKey, fields })`. `assigneeAccountId` maps to `fields.assignee = { accountId: assigneeAccountId }`.
 3. If `status` provided → calls `sdk.issues.getTransitions({ issueIdOrKey })`, finds a matching transition (case-insensitive match on `transition.name` OR `transition.to.name`), calls `sdk.issues.doTransition({ issueIdOrKey, transition: { id } })`.
 4. If no matching transition found → returns `isError: true` with list of available status names.
 5. Fetches and returns the full updated issue via `jiraFetch`.
@@ -347,7 +349,8 @@ Each tool file exports:
   "properties": {
     "summary": { "type": "string", "description": "Epic title" },
     "epicName": { "type": "string", "description": "Short Epic name label (defaults to summary if omitted)" },
-    "description": { "type": "string", "description": "Epic details" }
+    "description": { "type": "string", "description": "Epic details" },
+    "labels": { "type": "array", "items": { "type": "string" }, "description": "Labels to apply" }
   },
   "required": ["summary"]
 }
@@ -356,7 +359,7 @@ Each tool file exports:
 **Behaviour:**
 1. `epicName` defaults to `summary` if omitted.
 2. Builds `fields` object: `project: { key: jiraClient.project }`, `summary`, `issuetype: { name: 'Epic' }`, `customfield_10011: epicName`.
-3. Adds `description` to fields only if provided (omitting the key entirely when absent).
+3. Adds `description` and `labels` to fields only if provided (omitting the keys entirely when absent).
 4. Uses `jiraClient.sdk.issues.createIssue({ fields })`.
 5. Returns the created epic object (includes `key`, `id`, `self`).
 
@@ -378,7 +381,8 @@ Each tool file exports:
     "epicName": { "type": "string", "description": "New short Epic name label (customfield_10011)" },
     "description": { "type": "string", "description": "New epic description" },
     "status": { "type": "string", "description": "New status (e.g., \"In Progress\", \"Done\")" },
-    "assigneeAccountId": { "type": "string", "description": "Atlassian account ID of the assignee" }
+    "assigneeAccountId": { "type": "string", "description": "Atlassian account ID of the assignee" },
+    "labels": { "type": "array", "items": { "type": "string" }, "description": "Labels to apply, replaces existing labels" }
   },
   "required": ["issueKey"]
 }
@@ -386,7 +390,7 @@ Each tool file exports:
 
 **Behaviour:**
 1. Validates `issueKey` belongs to `JIRA_PROJECT`. Returns `isError: true` otherwise.
-2. If `summary`, `description`, `epicName`, or `assigneeAccountId` provided → calls `sdk.issues.editIssue({ issueIdOrKey, fields })` where `epicName` maps to `customfield_10011` and `assigneeAccountId` maps to `fields.assignee = { accountId: assigneeAccountId }`.
+2. If `summary`, `description`, `epicName`, `assigneeAccountId`, or `labels` provided → calls `sdk.issues.editIssue({ issueIdOrKey, fields })` where `epicName` maps to `customfield_10011` and `assigneeAccountId` maps to `fields.assignee = { accountId: assigneeAccountId }`.
 3. If `status` provided → calls `sdk.issues.getTransitions({ issueIdOrKey })`, finds a matching transition (case-insensitive match on `transition.name` OR `transition.to.name`), calls `sdk.issues.doTransition({ issueIdOrKey, transition: { id } })`.
 4. If no matching transition found → returns `isError: true` with list of available status names.
 5. Fetches and returns the full updated epic via `jiraFetch`.

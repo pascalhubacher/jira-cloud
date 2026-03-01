@@ -25,13 +25,18 @@ export const definition = {
         type: 'string',
         description: 'Type (Task, Bug, etc.)',
       },
+      labels: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'List of labels to apply (e.g., ["backend", "urgent"])',
+      },
     },
     required: ['summary'],
   },
 };
 
 export async function handler(jiraClient, args) {
-  const { projectKey = jiraClient.project, summary, description, issueType = 'Task' } = args;
+  const { projectKey = jiraClient.project, summary, description, issueType = 'Task', labels } = args;
 
   if (projectKey.toUpperCase() !== jiraClient.project.toUpperCase()) {
     return {
@@ -42,14 +47,15 @@ export async function handler(jiraClient, args) {
 
   console.error(`Creating issue in ${projectKey}`);
 
-  const issue = await jiraClient.sdk.issues.createIssue({
-    fields: {
-      project: { key: projectKey },
-      summary,
-      description,
-      issuetype: { name: issueType },
-    },
-  });
+  const fields = {
+    project: { key: projectKey },
+    summary,
+    description,
+    issuetype: { name: issueType },
+  };
+  if (labels) fields.labels = labels;
+
+  const issue = await jiraClient.sdk.issues.createIssue({ fields });
 
   console.error(`Created issue: ${issue.key}`);
   return {

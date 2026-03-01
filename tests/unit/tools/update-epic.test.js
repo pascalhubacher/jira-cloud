@@ -32,12 +32,14 @@ describe('updateEpic Schema', () => {
     expect(definition.inputSchema.properties.issueKey.type).toBe('string');
   });
 
-  it('should have optional summary, epicName, description, status, and assigneeAccountId properties', () => {
+  it('should have optional summary, epicName, description, status, assigneeAccountId, and labels properties', () => {
     expect(definition.inputSchema.properties.summary.type).toBe('string');
     expect(definition.inputSchema.properties.epicName.type).toBe('string');
     expect(definition.inputSchema.properties.description.type).toBe('string');
     expect(definition.inputSchema.properties.status.type).toBe('string');
     expect(definition.inputSchema.properties.assigneeAccountId.type).toBe('string');
+    expect(definition.inputSchema.properties.labels.type).toBe('array');
+    expect(definition.inputSchema.properties.labels.items.type).toBe('string');
   });
 
   it('should only require issueKey', () => {
@@ -91,6 +93,16 @@ describe('updateEpic Handler — Field Updates', () => {
     expect(client.sdk.issues.editIssue).toHaveBeenCalledWith({
       issueIdOrKey: 'TEST-10',
       fields: { assignee: { accountId: 'abc123' } },
+    });
+  });
+
+  it('should call editIssue with labels when provided', async () => {
+    const client = mockClient('TEST');
+    await handler(client, { issueKey: 'TEST-10', labels: ['backend', 'urgent'] });
+
+    expect(client.sdk.issues.editIssue).toHaveBeenCalledWith({
+      issueIdOrKey: 'TEST-10',
+      fields: { labels: ['backend', 'urgent'] },
     });
   });
 

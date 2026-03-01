@@ -35,6 +35,11 @@ describe('createIssue Schema', () => {
     expect(definition.inputSchema.properties.issueType.type).toBe('string');
   });
 
+  it('should have a labels property of type array', () => {
+    expect(definition.inputSchema.properties.labels.type).toBe('array');
+    expect(definition.inputSchema.properties.labels.items.type).toBe('string');
+  });
+
   it('should only require summary (projectKey defaults to configured project)', () => {
     expect(definition.inputSchema.required).toContain('summary');
     expect(definition.inputSchema.required).not.toContain('projectKey');
@@ -70,5 +75,24 @@ describe('createIssue Handler', () => {
     const client = mockClient('TEST');
     const result = await handler(client, { projectKey: 'test', summary: 'Test issue' });
     expect(result.isError).toBeUndefined();
+  });
+
+  it('should include labels when provided', async () => {
+    const client = mockClient('TEST');
+    await handler(client, { summary: 'Test issue', labels: ['backend', 'urgent'] });
+
+    expect(client.sdk.issues.createIssue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fields: expect.objectContaining({ labels: ['backend', 'urgent'] }),
+      })
+    );
+  });
+
+  it('should not include labels field when omitted', async () => {
+    const client = mockClient('TEST');
+    await handler(client, { summary: 'Test issue' });
+
+    const callArgs = client.sdk.issues.createIssue.mock.calls[0][0];
+    expect(callArgs.fields).not.toHaveProperty('labels');
   });
 });

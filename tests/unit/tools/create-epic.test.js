@@ -31,6 +31,11 @@ describe('createEpic Schema', () => {
     expect(definition.inputSchema.properties.description.type).toBe('string');
   });
 
+  it('should have a labels property of type array', () => {
+    expect(definition.inputSchema.properties.labels.type).toBe('array');
+    expect(definition.inputSchema.properties.labels.items.type).toBe('string');
+  });
+
   it('should only require summary', () => {
     expect(definition.inputSchema.required).toContain('summary');
     expect(definition.inputSchema.required).toHaveLength(1);
@@ -99,6 +104,25 @@ describe('createEpic Handler', () => {
 
     const callArgs = client.sdk.issues.createIssue.mock.calls[0][0];
     expect(callArgs.fields).not.toHaveProperty('description');
+  });
+
+  it('should include labels when provided', async () => {
+    const client = mockClient('TEST');
+    await handler(client, { summary: 'My Epic', labels: ['backend', 'urgent'] });
+
+    expect(client.sdk.issues.createIssue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fields: expect.objectContaining({ labels: ['backend', 'urgent'] }),
+      })
+    );
+  });
+
+  it('should not include labels field when omitted', async () => {
+    const client = mockClient('TEST');
+    await handler(client, { summary: 'My Epic' });
+
+    const callArgs = client.sdk.issues.createIssue.mock.calls[0][0];
+    expect(callArgs.fields).not.toHaveProperty('labels');
   });
 
   it('should return the created epic as JSON content', async () => {

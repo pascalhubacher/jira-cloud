@@ -33,11 +33,13 @@ describe('updateIssue Schema', () => {
     expect(definition.inputSchema.properties.issueKey.type).toBe('string');
   });
 
-  it('should have optional summary, description, status, and assigneeAccountId properties', () => {
+  it('should have optional summary, description, status, assigneeAccountId, and labels properties', () => {
     expect(definition.inputSchema.properties.summary.type).toBe('string');
     expect(definition.inputSchema.properties.description.type).toBe('string');
     expect(definition.inputSchema.properties.status.type).toBe('string');
     expect(definition.inputSchema.properties.assigneeAccountId.type).toBe('string');
+    expect(definition.inputSchema.properties.labels.type).toBe('array');
+    expect(definition.inputSchema.properties.labels.items.type).toBe('string');
   });
 
   it('should only require issueKey', () => {
@@ -91,6 +93,16 @@ describe('updateIssue Handler', () => {
     expect(client.sdk.issues.editIssue).toHaveBeenCalledWith({
       issueIdOrKey: 'TEST-1',
       fields: { assignee: { accountId: 'abc123' } },
+    });
+  });
+
+  it('should call editIssue with labels when provided', async () => {
+    const client = mockClient('TEST');
+    await handler(client, { issueKey: 'TEST-1', labels: ['backend', 'urgent'] });
+
+    expect(client.sdk.issues.editIssue).toHaveBeenCalledWith({
+      issueIdOrKey: 'TEST-1',
+      fields: { labels: ['backend', 'urgent'] },
     });
   });
 

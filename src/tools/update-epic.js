@@ -33,13 +33,18 @@ export const definition = {
         type: 'string',
         description: 'Atlassian account ID of the assignee (e.g., "5b10ac8d82e05b22cc7d4ef5")',
       },
+      labels: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'List of labels to apply, replaces existing labels (e.g., ["backend", "urgent"])',
+      },
     },
     required: ['issueKey'],
   },
 };
 
 export async function handler(jiraClient, args) {
-  const { issueKey, summary, epicName, description, status, assigneeAccountId } = args;
+  const { issueKey, summary, epicName, description, status, assigneeAccountId, labels } = args;
 
   if (!issueKey.toUpperCase().startsWith(`${jiraClient.project.toUpperCase()}-`)) {
     return {
@@ -55,6 +60,7 @@ export async function handler(jiraClient, args) {
   if (description) fields.description = description;
   if (epicName) fields.customfield_10011 = epicName;
   if (assigneeAccountId) fields.assignee = { accountId: assigneeAccountId };
+  if (labels) fields.labels = labels;
 
   if (Object.keys(fields).length > 0) {
     await jiraClient.sdk.issues.editIssue({ issueIdOrKey: issueKey, fields });
