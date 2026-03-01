@@ -34,13 +34,17 @@ export const definition = {
         items: { type: 'string' },
         description: 'List of labels to apply, replaces existing labels (e.g., ["backend", "urgent"])',
       },
+      storyPoints: {
+        type: 'number',
+        description: 'Story point estimate (maps to story_points field; some instances use customfield_10016)',
+      },
     },
     required: ['issueKey'],
   },
 };
 
 export async function handler(jiraClient, args) {
-  const { issueKey, summary, description, status, assigneeAccountId, labels } = args;
+  const { issueKey, summary, description, status, assigneeAccountId, labels, storyPoints } = args;
 
   if (!issueKey.toUpperCase().startsWith(`${jiraClient.project.toUpperCase()}-`)) {
     return {
@@ -57,6 +61,7 @@ export async function handler(jiraClient, args) {
   if (description) fields.description = description;
   if (assigneeAccountId) fields.assignee = { accountId: assigneeAccountId };
   if (labels) fields.labels = labels;
+  if (storyPoints != null) fields.story_points = storyPoints;
 
   if (Object.keys(fields).length > 0) {
     await jiraClient.sdk.issues.editIssue({ issueIdOrKey: issueKey, fields });

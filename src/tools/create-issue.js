@@ -30,13 +30,17 @@ export const definition = {
         items: { type: 'string' },
         description: 'List of labels to apply (e.g., ["backend", "urgent"])',
       },
+      storyPoints: {
+        type: 'number',
+        description: 'Story point estimate (maps to story_points field; some instances use customfield_10016)',
+      },
     },
     required: ['summary'],
   },
 };
 
 export async function handler(jiraClient, args) {
-  const { projectKey = jiraClient.project, summary, description, issueType = 'Task', labels } = args;
+  const { projectKey = jiraClient.project, summary, description, issueType = 'Task', labels, storyPoints } = args;
 
   if (projectKey.toUpperCase() !== jiraClient.project.toUpperCase()) {
     return {
@@ -54,6 +58,7 @@ export async function handler(jiraClient, args) {
     issuetype: { name: issueType },
   };
   if (labels) fields.labels = labels;
+  if (storyPoints != null) fields.story_points = storyPoints;
 
   const issue = await jiraClient.sdk.issues.createIssue({ fields });
 

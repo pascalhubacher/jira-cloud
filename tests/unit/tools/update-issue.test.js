@@ -33,13 +33,14 @@ describe('updateIssue Schema', () => {
     expect(definition.inputSchema.properties.issueKey.type).toBe('string');
   });
 
-  it('should have optional summary, description, status, assigneeAccountId, and labels properties', () => {
+  it('should have optional summary, description, status, assigneeAccountId, labels, and storyPoints properties', () => {
     expect(definition.inputSchema.properties.summary.type).toBe('string');
     expect(definition.inputSchema.properties.description.type).toBe('string');
     expect(definition.inputSchema.properties.status.type).toBe('string');
     expect(definition.inputSchema.properties.assigneeAccountId.type).toBe('string');
     expect(definition.inputSchema.properties.labels.type).toBe('array');
     expect(definition.inputSchema.properties.labels.items.type).toBe('string');
+    expect(definition.inputSchema.properties.storyPoints.type).toBe('number');
   });
 
   it('should only require issueKey', () => {
@@ -103,6 +104,26 @@ describe('updateIssue Handler', () => {
     expect(client.sdk.issues.editIssue).toHaveBeenCalledWith({
       issueIdOrKey: 'TEST-1',
       fields: { labels: ['backend', 'urgent'] },
+    });
+  });
+
+  it('should call editIssue with story_points when storyPoints is provided', async () => {
+    const client = mockClient('TEST');
+    await handler(client, { issueKey: 'TEST-1', storyPoints: 8 });
+
+    expect(client.sdk.issues.editIssue).toHaveBeenCalledWith({
+      issueIdOrKey: 'TEST-1',
+      fields: { story_points: 8 },
+    });
+  });
+
+  it('should set story_points to 0 when storyPoints is 0', async () => {
+    const client = mockClient('TEST');
+    await handler(client, { issueKey: 'TEST-1', storyPoints: 0 });
+
+    expect(client.sdk.issues.editIssue).toHaveBeenCalledWith({
+      issueIdOrKey: 'TEST-1',
+      fields: { story_points: 0 },
     });
   });
 

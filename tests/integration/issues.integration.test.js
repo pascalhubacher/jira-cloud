@@ -274,6 +274,19 @@ describe('updateIssue', () => {
     console.log(`Assigned ${testIssueKey} to: ${myself.displayName}`);
   });
 
+  it('should set story points on an issue', async () => {
+    await jiraClient.sdk.issues.editIssue({
+      issueIdOrKey: testIssueKey,
+      fields: { story_points: 5 },
+    });
+
+    const updatedIssue = await jiraClient.jiraFetch(`/rest/api/3/issue/${testIssueKey}`);
+    // story points may be in story_points (team-managed) or customfield_10016 (classic)
+    const sp = updatedIssue.fields.story_points ?? updatedIssue.fields.customfield_10016;
+    expect(sp).toBe(5);
+    console.log(`Set story points on ${testIssueKey}: ${sp}`);
+  });
+
   it('should set labels on an issue', async () => {
     await jiraClient.sdk.issues.editIssue({
       issueIdOrKey: testIssueKey,

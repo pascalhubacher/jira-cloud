@@ -214,7 +214,8 @@ Each tool file exports:
     "summary": { "type": "string", "description": "Issue title" },
     "description": { "type": "string", "description": "Issue details" },
     "issueType": { "type": "string", "description": "Type (Task, Bug, etc.)" },
-    "labels": { "type": "array", "items": { "type": "string" }, "description": "Labels to apply" }
+    "labels": { "type": "array", "items": { "type": "string" }, "description": "Labels to apply" },
+    "storyPoints": { "type": "number", "description": "Story point estimate (maps to story_points field)" }
   },
   "required": ["summary"]
 }
@@ -224,8 +225,11 @@ Each tool file exports:
 1. `projectKey` defaults to `jiraClient.project` if omitted.
 2. If `projectKey` (case-insensitive) does not match `jiraClient.project`, returns `isError: true` — no cross-project creation allowed.
 3. `issueType` defaults to `"Task"`.
-4. Uses `jiraClient.sdk.issues.createIssue({ fields: { project, summary, description, issuetype, labels? } })`.
-5. Returns the created issue object (includes `key`, `id`, `self`).
+4. `storyPoints` maps to `fields.story_points`. Classic projects may store this as `customfield_10016` — see note below.
+5. Uses `jiraClient.sdk.issues.createIssue({ fields: { project, summary, description, issuetype, labels?, story_points? } })`.
+6. Returns the created issue object (includes `key`, `id`, `self`).
+
+**Note on story points:** Team-managed (next-gen) projects use the `story_points` field; classic (company-managed/SCRUM) projects typically use `customfield_10016`. The tool writes to `story_points`. If it has no effect on your project, the field ID may need to be changed to `customfield_10016` in the handler.
 
 ---
 
@@ -278,7 +282,8 @@ Each tool file exports:
     "description": { "type": "string", "description": "New issue description" },
     "status": { "type": "string", "description": "New status (e.g., \"In Progress\", \"Done\")" },
     "assigneeAccountId": { "type": "string", "description": "Atlassian account ID of the assignee" },
-    "labels": { "type": "array", "items": { "type": "string" }, "description": "Labels to apply, replaces existing labels" }
+    "labels": { "type": "array", "items": { "type": "string" }, "description": "Labels to apply, replaces existing labels" },
+    "storyPoints": { "type": "number", "description": "Story point estimate (maps to story_points field)" }
   },
   "required": ["issueKey"]
 }
@@ -286,7 +291,7 @@ Each tool file exports:
 
 **Behaviour:**
 1. Validates `issueKey` belongs to `JIRA_PROJECT`. Returns `isError: true` otherwise.
-2. If `summary`, `description`, `assigneeAccountId`, or `labels` provided → calls `sdk.issues.editIssue({ issueIdOrKey, fields })`. `assigneeAccountId` maps to `fields.assignee = { accountId: assigneeAccountId }`.
+2. If `summary`, `description`, `assigneeAccountId`, `labels`, or `storyPoints` provided → calls `sdk.issues.editIssue({ issueIdOrKey, fields })`. `assigneeAccountId` maps to `fields.assignee = { accountId: assigneeAccountId }`, `storyPoints` maps to `fields.story_points`.
 3. If `status` provided → calls `sdk.issues.getTransitions({ issueIdOrKey })`, finds a matching transition (case-insensitive match on `transition.name` OR `transition.to.name`), calls `sdk.issues.doTransition({ issueIdOrKey, transition: { id } })`.
 4. If no matching transition found → returns `isError: true` with list of available status names.
 5. Fetches and returns the full updated issue via `jiraFetch`.

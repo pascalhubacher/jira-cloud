@@ -40,6 +40,10 @@ describe('createIssue Schema', () => {
     expect(definition.inputSchema.properties.labels.items.type).toBe('string');
   });
 
+  it('should have a storyPoints property of type number', () => {
+    expect(definition.inputSchema.properties.storyPoints.type).toBe('number');
+  });
+
   it('should only require summary (projectKey defaults to configured project)', () => {
     expect(definition.inputSchema.required).toContain('summary');
     expect(definition.inputSchema.required).not.toContain('projectKey');
@@ -94,5 +98,35 @@ describe('createIssue Handler', () => {
 
     const callArgs = client.sdk.issues.createIssue.mock.calls[0][0];
     expect(callArgs.fields).not.toHaveProperty('labels');
+  });
+
+  it('should include story_points when storyPoints is provided', async () => {
+    const client = mockClient('TEST');
+    await handler(client, { summary: 'Test issue', storyPoints: 5 });
+
+    expect(client.sdk.issues.createIssue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fields: expect.objectContaining({ story_points: 5 }),
+      })
+    );
+  });
+
+  it('should include story_points: 0 when storyPoints is 0', async () => {
+    const client = mockClient('TEST');
+    await handler(client, { summary: 'Test issue', storyPoints: 0 });
+
+    expect(client.sdk.issues.createIssue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fields: expect.objectContaining({ story_points: 0 }),
+      })
+    );
+  });
+
+  it('should not include story_points when storyPoints is omitted', async () => {
+    const client = mockClient('TEST');
+    await handler(client, { summary: 'Test issue' });
+
+    const callArgs = client.sdk.issues.createIssue.mock.calls[0][0];
+    expect(callArgs.fields).not.toHaveProperty('story_points');
   });
 });
