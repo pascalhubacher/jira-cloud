@@ -33,10 +33,11 @@ describe('updateIssue Schema', () => {
     expect(definition.inputSchema.properties.issueKey.type).toBe('string');
   });
 
-  it('should have optional summary, description, and status properties', () => {
+  it('should have optional summary, description, status, and assigneeAccountId properties', () => {
     expect(definition.inputSchema.properties.summary.type).toBe('string');
     expect(definition.inputSchema.properties.description.type).toBe('string');
     expect(definition.inputSchema.properties.status.type).toBe('string');
+    expect(definition.inputSchema.properties.assigneeAccountId.type).toBe('string');
   });
 
   it('should only require issueKey', () => {
@@ -80,6 +81,16 @@ describe('updateIssue Handler', () => {
     expect(client.sdk.issues.editIssue).toHaveBeenCalledWith({
       issueIdOrKey: 'TEST-1',
       fields: { summary: 'New Summary' },
+    });
+  });
+
+  it('should call editIssue with assignee when assigneeAccountId is provided', async () => {
+    const client = mockClient('TEST');
+    await handler(client, { issueKey: 'TEST-1', assigneeAccountId: 'abc123' });
+
+    expect(client.sdk.issues.editIssue).toHaveBeenCalledWith({
+      issueIdOrKey: 'TEST-1',
+      fields: { assignee: { accountId: 'abc123' } },
     });
   });
 

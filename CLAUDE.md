@@ -275,7 +275,8 @@ Each tool file exports:
     "issueKey": { "type": "string", "description": "Issue key (e.g., TEST-123)" },
     "summary": { "type": "string", "description": "New issue title" },
     "description": { "type": "string", "description": "New issue description" },
-    "status": { "type": "string", "description": "New status (e.g., \"In Progress\", \"Done\")" }
+    "status": { "type": "string", "description": "New status (e.g., \"In Progress\", \"Done\")" },
+    "assigneeAccountId": { "type": "string", "description": "Atlassian account ID of the assignee" }
   },
   "required": ["issueKey"]
 }
@@ -283,7 +284,7 @@ Each tool file exports:
 
 **Behaviour:**
 1. Validates `issueKey` belongs to `JIRA_PROJECT`. Returns `isError: true` otherwise.
-2. If `summary` or `description` provided → calls `sdk.issues.editIssue({ issueIdOrKey, fields })`.
+2. If `summary`, `description`, or `assigneeAccountId` provided → calls `sdk.issues.editIssue({ issueIdOrKey, fields })`. `assigneeAccountId` maps to `fields.assignee = { accountId: assigneeAccountId }`.
 3. If `status` provided → calls `sdk.issues.getTransitions({ issueIdOrKey })`, finds a matching transition (case-insensitive match on `transition.name` OR `transition.to.name`), calls `sdk.issues.doTransition({ issueIdOrKey, transition: { id } })`.
 4. If no matching transition found → returns `isError: true` with list of available status names.
 5. Fetches and returns the full updated issue via `jiraFetch`.
@@ -376,7 +377,8 @@ Each tool file exports:
     "summary": { "type": "string", "description": "New epic title" },
     "epicName": { "type": "string", "description": "New short Epic name label (customfield_10011)" },
     "description": { "type": "string", "description": "New epic description" },
-    "status": { "type": "string", "description": "New status (e.g., \"In Progress\", \"Done\")" }
+    "status": { "type": "string", "description": "New status (e.g., \"In Progress\", \"Done\")" },
+    "assigneeAccountId": { "type": "string", "description": "Atlassian account ID of the assignee" }
   },
   "required": ["issueKey"]
 }
@@ -384,7 +386,7 @@ Each tool file exports:
 
 **Behaviour:**
 1. Validates `issueKey` belongs to `JIRA_PROJECT`. Returns `isError: true` otherwise.
-2. If `summary`, `description`, or `epicName` provided → calls `sdk.issues.editIssue({ issueIdOrKey, fields })` where `epicName` maps to `customfield_10011`.
+2. If `summary`, `description`, `epicName`, or `assigneeAccountId` provided → calls `sdk.issues.editIssue({ issueIdOrKey, fields })` where `epicName` maps to `customfield_10011` and `assigneeAccountId` maps to `fields.assignee = { accountId: assigneeAccountId }`.
 3. If `status` provided → calls `sdk.issues.getTransitions({ issueIdOrKey })`, finds a matching transition (case-insensitive match on `transition.name` OR `transition.to.name`), calls `sdk.issues.doTransition({ issueIdOrKey, transition: { id } })`.
 4. If no matching transition found → returns `isError: true` with list of available status names.
 5. Fetches and returns the full updated epic via `jiraFetch`.

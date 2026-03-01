@@ -5,7 +5,7 @@
 
 export const definition = {
   name: 'updateIssue',
-  description: 'Update fields of an existing Jira issue (summary, description, status)',
+  description: 'Update fields of an existing Jira issue (summary, description, status, assignee)',
   inputSchema: {
     type: 'object',
     properties: {
@@ -25,13 +25,17 @@ export const definition = {
         type: 'string',
         description: 'New status (e.g., "In Progress", "Done")',
       },
+      assigneeAccountId: {
+        type: 'string',
+        description: 'Atlassian account ID of the assignee (e.g., "5b10ac8d82e05b22cc7d4ef5")',
+      },
     },
     required: ['issueKey'],
   },
 };
 
 export async function handler(jiraClient, args) {
-  const { issueKey, summary, description, status } = args;
+  const { issueKey, summary, description, status, assigneeAccountId } = args;
 
   if (!issueKey.toUpperCase().startsWith(`${jiraClient.project.toUpperCase()}-`)) {
     return {
@@ -46,6 +50,7 @@ export async function handler(jiraClient, args) {
   const fields = {};
   if (summary) fields.summary = summary;
   if (description) fields.description = description;
+  if (assigneeAccountId) fields.assignee = { accountId: assigneeAccountId };
 
   if (Object.keys(fields).length > 0) {
     await jiraClient.sdk.issues.editIssue({ issueIdOrKey: issueKey, fields });

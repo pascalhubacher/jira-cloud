@@ -32,11 +32,12 @@ describe('updateEpic Schema', () => {
     expect(definition.inputSchema.properties.issueKey.type).toBe('string');
   });
 
-  it('should have optional summary, epicName, description, and status properties', () => {
+  it('should have optional summary, epicName, description, status, and assigneeAccountId properties', () => {
     expect(definition.inputSchema.properties.summary.type).toBe('string');
     expect(definition.inputSchema.properties.epicName.type).toBe('string');
     expect(definition.inputSchema.properties.description.type).toBe('string');
     expect(definition.inputSchema.properties.status.type).toBe('string');
+    expect(definition.inputSchema.properties.assigneeAccountId.type).toBe('string');
   });
 
   it('should only require issueKey', () => {
@@ -80,6 +81,16 @@ describe('updateEpic Handler — Field Updates', () => {
     expect(client.sdk.issues.editIssue).toHaveBeenCalledWith({
       issueIdOrKey: 'TEST-10',
       fields: { customfield_10011: 'New Label' },
+    });
+  });
+
+  it('should call editIssue with assignee when assigneeAccountId is provided', async () => {
+    const client = mockClient('TEST');
+    await handler(client, { issueKey: 'TEST-10', assigneeAccountId: 'abc123' });
+
+    expect(client.sdk.issues.editIssue).toHaveBeenCalledWith({
+      issueIdOrKey: 'TEST-10',
+      fields: { assignee: { accountId: 'abc123' } },
     });
   });
 

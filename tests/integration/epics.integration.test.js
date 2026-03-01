@@ -138,6 +138,20 @@ describe('updateEpic', () => {
     console.log(`Updated epic summary: ${newSummary}`);
   });
 
+  it('should assign epic to the current user', async () => {
+    const myself = await jiraClient.sdk.myself.getCurrentUser();
+
+    await jiraClient.sdk.issues.editIssue({
+      issueIdOrKey: testEpicKey,
+      fields: { assignee: { accountId: myself.accountId } },
+    });
+
+    const updated = await jiraClient.jiraFetch(`/rest/api/3/issue/${testEpicKey}`);
+    expect(updated.fields.assignee).not.toBeNull();
+    expect(updated.fields.assignee.accountId).toBe(myself.accountId);
+    console.log(`Assigned ${testEpicKey} to: ${myself.displayName}`);
+  });
+
   it('should update epic name (customfield_10011)', async () => {
     await jiraClient.sdk.issues.editIssue({
       issueIdOrKey: testEpicKey,

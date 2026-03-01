@@ -118,9 +118,12 @@ If the server runs in WSL (Windows Subsystem for Linux), use this configuration:
     "jira-cloud": {
       "command": "wsl.exe",
       "args": [
-        "-d", "Ubuntu-24.04",
-        "--cd", "/home/<username>/git/jira-cloud",
-        "/home/<username>/.nvm/versions/node/<version>/bin/node", "index.js"
+        "-d",
+        "Ubuntu-24.04",
+        "--cd",
+        "/home/<username>/git/jira-cloud",
+        "/home/<username>/.nvm/versions/node/<version>/bin/node",
+        "index.js"
       ],
       "env": {
         "JIRA_HOST": "https://your-domain.atlassian.net",

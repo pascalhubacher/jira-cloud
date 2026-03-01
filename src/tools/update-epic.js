@@ -5,7 +5,7 @@
 
 export const definition = {
   name: 'updateEpic',
-  description: 'Update fields of an existing Epic (summary, epicName, description, status)',
+  description: 'Update fields of an existing Epic (summary, epicName, description, status, assignee)',
   inputSchema: {
     type: 'object',
     properties: {
@@ -29,13 +29,17 @@ export const definition = {
         type: 'string',
         description: 'New status (e.g., "In Progress", "Done")',
       },
+      assigneeAccountId: {
+        type: 'string',
+        description: 'Atlassian account ID of the assignee (e.g., "5b10ac8d82e05b22cc7d4ef5")',
+      },
     },
     required: ['issueKey'],
   },
 };
 
 export async function handler(jiraClient, args) {
-  const { issueKey, summary, epicName, description, status } = args;
+  const { issueKey, summary, epicName, description, status, assigneeAccountId } = args;
 
   if (!issueKey.toUpperCase().startsWith(`${jiraClient.project.toUpperCase()}-`)) {
     return {
@@ -50,6 +54,7 @@ export async function handler(jiraClient, args) {
   if (summary) fields.summary = summary;
   if (description) fields.description = description;
   if (epicName) fields.customfield_10011 = epicName;
+  if (assigneeAccountId) fields.assignee = { accountId: assigneeAccountId };
 
   if (Object.keys(fields).length > 0) {
     await jiraClient.sdk.issues.editIssue({ issueIdOrKey: issueKey, fields });

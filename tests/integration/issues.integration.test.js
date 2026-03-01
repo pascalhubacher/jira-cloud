@@ -260,6 +260,20 @@ describe('updateIssue', () => {
     console.log(`Updated summary to: ${newSummary}`);
   });
 
+  it('should assign issue to the current user', async () => {
+    const myself = await jiraClient.sdk.myself.getCurrentUser();
+
+    await jiraClient.sdk.issues.editIssue({
+      issueIdOrKey: testIssueKey,
+      fields: { assignee: { accountId: myself.accountId } },
+    });
+
+    const updatedIssue = await jiraClient.jiraFetch(`/rest/api/3/issue/${testIssueKey}`);
+    expect(updatedIssue.fields.assignee).not.toBeNull();
+    expect(updatedIssue.fields.assignee.accountId).toBe(myself.accountId);
+    console.log(`Assigned ${testIssueKey} to: ${myself.displayName}`);
+  });
+
   it('should get available transitions', async () => {
     const transitions = await jiraClient.sdk.issues.getTransitions({
       issueIdOrKey: testIssueKey,
